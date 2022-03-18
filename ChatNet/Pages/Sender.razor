@@ -1,0 +1,56 @@
+﻿@page "/sender"
+@using System.Net.Sockets
+@using System.Net
+@using ChatNet.Services
+
+@*@inject ServerConnectionClient _client*@
+
+
+<h3>Sender</h3>
+
+<input @bind="InputUsername" />
+
+
+<table style="width:100%">
+    <tr>
+        <td>Sender</td>
+        <td>Message</td>
+    </tr>
+    @foreach (var message in Messages)
+    {
+        <tr>
+            <td>@message.Key</td>
+            <td>@message.Value</td>
+        </tr>
+    }
+</table>
+
+<input @bind="InputMessage" />
+<button class="btn btn-primary" @onclick="SendMessage">Click me</button>
+
+@code {
+
+    TcpClient client = new TcpClient();
+    NetworkStream network = null;
+
+    List<KeyValuePair<string, string>> Messages = new List<KeyValuePair<string, string>>();
+
+    private string? InputUsername { get; set; }
+    private string? InputMessage { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await client.ConnectAsync(IPAddress.Parse("10.0.0.16"), 6969);
+        network = client.GetStream();
+    }
+
+    private async Task SendMessage()
+    {
+        if (InputMessage != null)
+        {
+            byte[] msg = System.Text.Encoding.ASCII.GetBytes(InputMessage);
+            await network.WriteAsync(msg, 0, msg.Length);
+        }
+    }
+
+}

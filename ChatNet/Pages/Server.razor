@@ -1,0 +1,17 @@
+﻿@page "/server"
+@using System.Net.Sockets
+@using System.Net
+@using ChatNet.Services
+@using ChatNet.Services.Sockets
+@using Microsoft.Maui.Controls
+
+
+<h3>Server</h3>
+
+<label>@Messages</label>
+
+<button class="btn btn-primary" @onclick="(e) => StateHasChanged()">Refresh</button>
+
+@code {
+
+}
