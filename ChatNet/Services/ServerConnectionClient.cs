@@ -21,7 +21,7 @@ namespace ChatNet.Services
             {
                 if (!_initialized)
                 {
-                    Server = new TcpListener(IPAddress.Parse("10.0.0.16"), 6969);
+                    Server = new TcpListener(IPAddress.Any, 6969);
                     Server.Start();
                     Console.WriteLine("Server has started on {0}.", Server.LocalEndpoint);
                     _initialized = true;

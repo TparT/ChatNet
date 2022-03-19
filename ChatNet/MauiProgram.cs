@@ -22,6 +22,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<WeatherForecastService>();
 
         builder.Services.AddScoped(_ => new ServerConnectionClient());
+        builder.Services.AddScoped(_ => new AudioPlayerManager());
         //builder.Services.AddScoped(_ => new TcpConnection(IPAddress.Parse("10.0.0.16"), 6969, new AutoResetEvent(false), false));
 
 

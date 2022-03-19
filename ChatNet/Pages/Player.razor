@@ -1,0 +1,7 @@
+﻿@page "/player"
+<h3>Player</h3>
+
+<button class="btn btn-primary" @onclick="(() => MainActivity.MainActivityInstance.StartCapturing())">Start Audio Capture</button>
+<button class="btn btn-primary" @onclick="(() => MainActivity.MainActivityInstance.StopCapturing())">Stop Audio Capture</button>
+<button class="btn btn-primary" @onclick="(() => MainActivity.MainActivityInstance.StartTransmitting())">Start Audio Transmission</button>
+<button class="btn btn-primary" @onclick="(() => MainActivity.MainActivityInstance.StopTransmitting())">Stop Audio Transmission</button>

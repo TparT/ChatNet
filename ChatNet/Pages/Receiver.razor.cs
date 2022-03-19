@@ -1,36 +1,31 @@
-﻿using ChatNet.Services;
-using Microsoft.AspNetCore.Components;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Sockets;
-
+using System.Text;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Components;
+using ChatNet.Services;
 
 namespace ChatNet.Pages
 {
-    public partial class Server
+    public partial class Receiver
     {
-
         [Inject]
         private ServerConnectionClient _client { get; set; } = default!;
 
-        private string Messages;
+        [Inject]
+        private AudioPlayerManager _player { get; set; } = default!;
 
         TcpClient client;
         NetworkStream stream;
-
-        public event Action<string> DataReceived;
-
-        //Services.Sockets.Server Listener = new Services.Sockets.Server(6969);
-        //Services.Sockets.Client Client = new Services.Sockets.Client();
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             if (firstRender)
             {
-                //if (!_client.IsOpen)
-                //{
-                //    _client.Open();
-                //    _client.NewDataEvent += Received;
-                //}
                 await _client.Initialize();
+                await _player.Initialize();
             }
         }
 
@@ -43,7 +38,7 @@ namespace ChatNet.Pages
             //string address = DeviceInfo.Platform == DevicePlatform.Android ? "10.0.2.2" : "127.0.0.1";
 
             //Buffer for reading data
-            byte[] bytes = new byte[256];
+            byte[] bytes = new byte[1024];
             string data = null;
 
             //await Task.Factory.StartNew(async () =>
@@ -55,7 +50,7 @@ namespace ChatNet.Pages
             await Task.Factory.StartNew(async () =>
             {
                 // Enter the listening loop.
-                await _client.Initialize();
+                //await _client.Initialize();
                 while (true)
                 {
                     Console.Write("Waiting for a connection... ");
@@ -64,24 +59,23 @@ namespace ChatNet.Pages
 
                     // Perform a blocking call to accept requests.
                     // You could also use server.AcceptSocket() here.
-                    //if (_client.Server.Pending())
-                    //{
                     client = await _client.Server.AcceptTcpClientAsync();
                     Console.WriteLine("Connected!");
 
                     // Get a stream object for reading and writing
                     stream = client.GetStream();
-                    //}
 
                     int i;
 
                     // Loop to receive all the data sent by the client.
                     while ((i = stream.Read(bytes, 0, bytes.Length)) != -1)
                     {
+                        await _player.WriteAsync(bytes, 0, i);
+
                         // Translate data bytes to a ASCII string.
                         data = System.Text.Encoding.ASCII.GetString(bytes, 0, i);
                         Console.WriteLine("Received: {0}", data);
-                        Messages += Environment.NewLine+data;
+                        //_ += Environment.NewLine + data;
                         //DataReceived?.Invoke(data);
                         //// Process the data sent by the client.
                         //data = data.ToUpper();
@@ -97,15 +91,6 @@ namespace ChatNet.Pages
                     client.Close();
                 }
             });
-        }
-
-        private void Received(string data, byte[] buffer)
-        {
-            //Translate data bytes to a ASCII string.
-            //string data = System.Text.Encoding.ASCII.GetString(bytes);
-            Console.WriteLine("Received: {0}", data);
-            Messages += data + "\n";
-            StateHasChanged();
         }
     }
 }
