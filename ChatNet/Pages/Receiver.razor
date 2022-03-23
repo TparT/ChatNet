@@ -2,7 +2,12 @@
 
 
 <h3>Receiver</h3>
+<br />
+<input @bind="IpAddress" />
+<br />
+<br />
+<button class="btn btn-primary" @onclick="Connect">Connect</button>
 
 @code {
-
+    private string IpAddress { get; set; } = "10.0.0.16";
 }

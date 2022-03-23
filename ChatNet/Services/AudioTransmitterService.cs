@@ -9,7 +9,8 @@ namespace ChatNet.Services
 {
     public partial class AudioTransmitterService
     {
-        TcpClient client = new TcpClient();
+        private ServerConnectionClient _client;
+        private TcpClient _tcpClient;
         NetworkStream network = null;
 
         public partial Task StartAudioTransmission();

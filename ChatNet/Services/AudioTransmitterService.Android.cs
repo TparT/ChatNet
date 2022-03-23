@@ -11,6 +11,7 @@ using Java.Lang;
 using Java.Util;
 using System;
 using System.Net;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 
 namespace ChatNet.Services
@@ -33,7 +34,9 @@ namespace ChatNet.Services
         private MediaProjectionManager mediaProjectionManager = null!;
         private MediaProjection? mediaProjection = null;
 
+        private Java.Lang.Thread acceptConnectionsThread = null!;
         private Java.Lang.Thread audioCaptureThread = null!;
+
         private AudioRecord? audioRecord = null;
 
         public override void OnCreate()
@@ -91,9 +94,29 @@ namespace ChatNet.Services
 
         public partial async Task StartAudioTransmission()
         {
-            await client.ConnectAsync(IPAddress.Parse("10.0.0.16"), 6969);
-            network = client.GetStream();
-            Log.Debug(LOG_TAG, $"Connected!!!!!!!!");
+            _client = new ServerConnectionClient();
+
+            await _client.Initialize();
+            //await client.ConnectAsync(IPAddress.Parse("10.0.0.16"), 6969);
+
+            acceptConnectionsThread = new Java.Lang.Thread(async () =>
+            {
+                while (!acceptConnectionsThread.IsInterrupted)
+                {
+                    if (_client.Server.Pending())
+                    {
+                        System.Console.Write("Waiting for a connection... ");
+                        TcpClient newClient = await _client.Server.AcceptTcpClientAsync();
+                        if (_client.ConnectedClients.TryAdd(_client.ConnectedClients.Count + 1, newClient))
+                        {
+                            System.Console.WriteLine("Connected!!!!!!!!");
+                            Log.Debug(LOG_TAG, $"Connected!!!!!!!!");
+                        }
+                        //network = _tcpClient.GetStream();
+                    }
+                }
+            });
+            acceptConnectionsThread.Start();
 
             var config = new AudioPlaybackCaptureConfiguration.Builder(mediaProjection!)
                 .AddMatchingUsage(AudioUsageKind.Media) // TODO provide UI options for inclusion/exclusion
@@ -117,6 +140,7 @@ namespace ChatNet.Services
                 .Build();
 
             audioRecord!.StartRecording();
+
             audioCaptureThread = new Java.Lang.Thread(async () =>
             {
                 //var outputFile = CreateAudioFile();
@@ -160,12 +184,34 @@ namespace ChatNet.Services
                 // You can uncomment the following line to see the capture samples but
                 // that will incur a performance hit due to logging I/O.
                 // Log.v(LOG_TAG, "Audio samples captured: ${capturedAudioSamples.toList()}")
-                await network.WriteAsync(capturedAudioSamples, 0, NUM_SAMPLES_PER_READ);
 
-                //Parallel.ForEach(_devices, async device =>
-                //{
-                //    await device.Value.WriteAsync(capturedAudioSamples, 0, BUFFER_SIZE_IN_BYTES / 2);
-                //});
+                //await network.WriteAsync(capturedAudioSamples, 0, NUM_SAMPLES_PER_READ);
+                
+                foreach (var client in _client.ConnectedClients)
+                {
+                    try
+                    {
+                        NetworkStream nws = client.Value.GetStream();
+
+                        if (!nws.Socket.Connected)
+                        {
+                            if (_client.ConnectedClients.TryRemove(client.Key, out TcpClient tcpClient))
+                            {
+                                System.Console.WriteLine($"Client ['{client.Key}'] has been disconnectedddddd!!!!!!!!");
+                                Log.Debug(LOG_TAG, $"Client ['{client.Key}'] has been disconnectedddddd!!!!!!!!");
+                            }
+                        }
+
+                        await client.Value.Client.SendAsync(capturedAudioSamples.AsMemory(0, NUM_SAMPLES_PER_READ), SocketFlags.None);
+                        Log.Debug(LOG_TAG, $"Sent {capturedAudioSamples.Length} bytes to client ['{client.Key}'] !!!!!!!!");
+                    }
+                    catch (System.Exception e)
+                    {
+                        System.Console.WriteLine(e.ToString());
+
+                        throw;
+                    }
+                }
 
                 //fileOutputStream.Write(capturedAudioSamples, 0, BUFFER_SIZE_IN_BYTES / 2);
             }

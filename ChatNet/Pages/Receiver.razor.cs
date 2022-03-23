@@ -11,8 +11,8 @@ namespace ChatNet.Pages
 {
     public partial class Receiver
     {
-        [Inject]
-        private ServerConnectionClient _client { get; set; } = default!;
+        //[Inject]
+        //private ServerConnectionClient _client { get; set; } = default!;
 
         [Inject]
         private AudioPlayerManager _player { get; set; } = default!;
@@ -24,10 +24,18 @@ namespace ChatNet.Pages
         {
             if (firstRender)
             {
-                await _client.Initialize();
+                //await _client.Initialize();
                 await _player.Initialize();
             }
         }
+
+        private async void Connect()
+        {
+            client = new TcpClient();
+            await client.ConnectAsync(System.Net.IPAddress.Parse(IpAddress), 6969);
+            Console.WriteLine("Connected!");
+        }
+
 
         protected override async Task OnInitializedAsync()
         {
@@ -51,16 +59,17 @@ namespace ChatNet.Pages
             {
                 // Enter the listening loop.
                 //await _client.Initialize();
+
+
+
                 while (true)
                 {
-                    Console.Write("Waiting for a connection... ");
 
                     data = null;
 
                     // Perform a blocking call to accept requests.
                     // You could also use server.AcceptSocket() here.
-                    client = await _client.Server.AcceptTcpClientAsync();
-                    Console.WriteLine("Connected!");
+
 
                     // Get a stream object for reading and writing
                     stream = client.GetStream();

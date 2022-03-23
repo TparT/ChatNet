@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -8,8 +9,9 @@ using System.Threading.Tasks;
 
 namespace ChatNet.Services
 {
-    public class ServerConnectionClient
+    public class ServerConnectionClient : IAsyncDisposable
     {
+        public ConcurrentDictionary<int, TcpClient> ConnectedClients;
         public TcpListener Server;
         private bool _initialized = false;
 
@@ -21,6 +23,7 @@ namespace ChatNet.Services
             {
                 if (!_initialized)
                 {
+                    ConnectedClients = new ConcurrentDictionary<int, TcpClient>();
                     Server = new TcpListener(IPAddress.Any, 6969);
                     Server.Start();
                     Console.WriteLine("Server has started on {0}.", Server.LocalEndpoint);
@@ -40,5 +43,10 @@ namespace ChatNet.Services
 
         public void Data(string data, byte[] buffer)
             => DataReceived?.Invoke(data);
+
+        public ValueTask DisposeAsync()
+        {
+            throw new NotImplementedException();
+        }
     }
 }
