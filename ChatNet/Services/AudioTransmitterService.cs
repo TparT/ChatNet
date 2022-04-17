@@ -1,17 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Sockets.Plugin;
+using Sockets.Plugin.Abstractions;
+using System.Collections.Concurrent;
 
 namespace ChatNet.Services
 {
     public partial class AudioTransmitterService
     {
-        private ServerConnectionClient _client;
-        private TcpClient _tcpClient;
-        NetworkStream network = null;
+        readonly ConcurrentDictionary<int, ITcpSocketClient> _clients = new ConcurrentDictionary<int, ITcpSocketClient>();
+        MulticastServer server;
+
+        private CancellationTokenSource _canceller;
 
         public partial Task StartAudioTransmission();
         public partial void StopAudioTransmission();

@@ -6,6 +6,7 @@ using Android.OS;
 using Android.Runtime;
 using Android.Util;
 using AndroidX.Core.App;
+using Sockets.Plugin;
 using Java.IO;
 using Java.Lang;
 using Java.Util;
@@ -13,6 +14,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using Sockets.Plugin.Abstractions;
 
 namespace ChatNet.Services
 {
@@ -94,29 +96,38 @@ namespace ChatNet.Services
 
         public partial async Task StartAudioTransmission()
         {
-            _client = new ServerConnectionClient();
+            string multicastAddress = "239.255.0.1";
+            int multicastPort = 6969;
 
-            await _client.Initialize();
-            //await client.ConnectAsync(IPAddress.Parse("10.0.0.16"), 6969);
-
-            acceptConnectionsThread = new Java.Lang.Thread(async () =>
+            try
             {
-                while (!acceptConnectionsThread.IsInterrupted)
-                {
-                    if (_client.Server.Pending())
-                    {
-                        System.Console.Write("Waiting for a connection... ");
-                        TcpClient newClient = await _client.Server.AcceptTcpClientAsync();
-                        if (_client.ConnectedClients.TryAdd(_client.ConnectedClients.Count + 1, newClient))
-                        {
-                            System.Console.WriteLine("Connected!!!!!!!!");
-                            Log.Debug(LOG_TAG, $"Connected!!!!!!!!");
-                        }
-                        //network = _tcpClient.GetStream();
-                    }
-                }
-            });
-            acceptConnectionsThread.Start();
+                server = new MulticastServer(IPAddress.Any, 0);
+                server.OptionReuseAddress = true;
+                server.Start(multicastAddress, multicastPort);
+            }
+            catch (System.Exception e)
+            {
+                System.Console.WriteLine(e.ToString());
+            }
+
+            //acceptConnectionsThread = new Java.Lang.Thread(async () =>
+            //{
+            //    while (!acceptConnectionsThread.IsInterrupted)
+            //    {
+            //        if (_client.Server.Pending())
+            //        {
+            //            System.Console.Write("Waiting for a connection... ");
+            //            TcpClient newClient = await _client.Server.AcceptTcpClientAsync();
+            //            if (_client.ConnectedClients.TryAdd(_client.ConnectedClients.Count + 1, newClient))
+            //            {
+            //                System.Console.WriteLine("Connected!!!!!!!!");
+            //                Log.Debug(LOG_TAG, $"Connected!!!!!!!!");
+            //            }
+            //            //network = _tcpClient.GetStream();
+            //        }
+            //    }
+            //});
+            //acceptConnectionsThread.Start();
 
             var config = new AudioPlaybackCaptureConfiguration.Builder(mediaProjection!)
                 .AddMatchingUsage(AudioUsageKind.Media) // TODO provide UI options for inclusion/exclusion
@@ -179,6 +190,7 @@ namespace ChatNet.Services
             while (!audioCaptureThread.IsInterrupted)
             {
                 await audioRecord?.ReadAsync(capturedAudioSamples, 0, NUM_SAMPLES_PER_READ);
+                server.Multicast(capturedAudioSamples);
 
                 // This loop should be as fast as possible to avoid artifacts in the captured audio
                 // You can uncomment the following line to see the capture samples but
@@ -186,32 +198,32 @@ namespace ChatNet.Services
                 // Log.v(LOG_TAG, "Audio samples captured: ${capturedAudioSamples.toList()}")
 
                 //await network.WriteAsync(capturedAudioSamples, 0, NUM_SAMPLES_PER_READ);
-                
-                foreach (var client in _client.ConnectedClients)
-                {
-                    try
-                    {
-                        NetworkStream nws = client.Value.GetStream();
 
-                        if (!nws.Socket.Connected)
-                        {
-                            if (_client.ConnectedClients.TryRemove(client.Key, out TcpClient tcpClient))
-                            {
-                                System.Console.WriteLine($"Client ['{client.Key}'] has been disconnectedddddd!!!!!!!!");
-                                Log.Debug(LOG_TAG, $"Client ['{client.Key}'] has been disconnectedddddd!!!!!!!!");
-                            }
-                        }
+                //foreach (var client in _client.ConnectedCl)
+                //{
+                //    try
+                //    {
+                //        NetworkStream nws = client.Value.GetStream();
 
-                        await client.Value.Client.SendAsync(capturedAudioSamples.AsMemory(0, NUM_SAMPLES_PER_READ), SocketFlags.None);
-                        Log.Debug(LOG_TAG, $"Sent {capturedAudioSamples.Length} bytes to client ['{client.Key}'] !!!!!!!!");
-                    }
-                    catch (System.Exception e)
-                    {
-                        System.Console.WriteLine(e.ToString());
+                //        if (!nws.Socket.Connected)
+                //        {
+                //            if (_client.ConnectedClients.TryRemove(client.Key, out TcpClient tcpClient))
+                //            {
+                //                System.Console.WriteLine($"Client ['{client.Key}'] has been disconnectedddddd!!!!!!!!");
+                //                Log.Debug(LOG_TAG, $"Client ['{client.Key}'] has been disconnectedddddd!!!!!!!!");
+                //            }
+                //        }
 
-                        throw;
-                    }
-                }
+                //        await client.Value.Client.SendAsync(capturedAudioSamples.AsMemory(0, NUM_SAMPLES_PER_READ), SocketFlags.None);
+                //        Log.Debug(LOG_TAG, $"Sent {capturedAudioSamples.Length} bytes to client ['{client.Key}'] !!!!!!!!");
+                //    }
+                //    catch (System.Exception e)
+                //    {
+                //        System.Console.WriteLine(e.ToString());
+
+                //        throw;
+                //    }
+                //}
 
                 //fileOutputStream.Write(capturedAudioSamples, 0, BUFFER_SIZE_IN_BYTES / 2);
             }
@@ -232,12 +244,18 @@ namespace ChatNet.Services
             audioRecord = null;
 
             mediaProjection!.Stop();
+            server.Dispose();
             StopSelf();
         }
 
         public override IBinder OnBind(Intent intent)
         {
             return null;
+        }
+
+        private void OnReceiveMessage(Message msg)
+        {
+            System.Console.WriteLine($"- [BROADCASTER] {msg.Text}");
         }
     }
 }

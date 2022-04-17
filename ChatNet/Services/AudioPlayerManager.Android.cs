@@ -82,7 +82,7 @@ namespace ChatNet.Services
 
         public partial async Task WriteAsync(byte[] data, int offset, int count)
         {
-            await audioTrack.WriteAsync(data, offset, count);
+            await audioTrack.WriteAsync(data, offset, count, WriteMode.NonBlocking);
         }
 
         public partial async Task Play()

@@ -10,8 +10,11 @@ using Microsoft.Maui.Controls;
 
 namespace ChatNet.Pages
 {
-    public partial class Player
+    public partial class Player : IDisposable
     {
+        public void Dispose()
+        {
 
+        }
     }
 }

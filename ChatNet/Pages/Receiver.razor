@@ -3,11 +3,15 @@
 
 <h3>Receiver</h3>
 <br />
+<p role="status">Current count: @count</p>
 <input @bind="IpAddress" />
 <br />
 <br />
+
 <button class="btn btn-primary" @onclick="Connect">Connect</button>
+<button class="btn btn-primary" @onclick="Reconnect">Reconnect</button>
+<button class="btn btn-primary" @onclick="Disconnect">Disconnect</button>
 
 @code {
-    private string IpAddress { get; set; } = "10.0.0.16";
+    
 }

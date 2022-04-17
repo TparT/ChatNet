@@ -1,5 +1,15 @@
 ﻿@page "/player"
+
+@using ChatNet.Services
+@inject NetworkingService ip
+
 <h3>Player</h3>
+
+<br />
+<br />
+
+<h1>@ip.GetIPAddress()</h1>
+
 
 <button class="btn btn-primary" @onclick="(() => MainActivity.MainActivityInstance.StartCapturing())">Start Audio Capture</button>
 <button class="btn btn-primary" @onclick="(() => MainActivity.MainActivityInstance.StopCapturing())">Stop Audio Capture</button>
